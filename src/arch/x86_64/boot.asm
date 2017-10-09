@@ -10,6 +10,7 @@ start:
 
 	call check_multiboot
 	call check_cpuid
+	call check_long_mode
 
 	; print 'OK! ' to screen
 	mov dword [vgabuf(0x00)], 0x2F4B2F4F
@@ -48,6 +49,24 @@ check_cpuid:
 
 .no_cpuid:
 	mov al, "1"
+	jmp error
+
+; see http://wiki.osdev.org/Setting_Up_Long_Mode#x86_or_x86-64
+check_long_mode:
+	mov eax, 0x80000000		; CPUID implicit arg
+	cpuid					; get maximum supported parameter
+	cmp eax, 0x80000001		; if maximum supported parameter is less than this,
+	jb .no_long_mode		; the CPU has no knowledge of long mode.
+
+	; use extended info to check for long mode
+	mov eax, 0x80000001		; argument for extended CPU info
+	cpuid					; writes feature bits to ECX and EDX
+	test edx, 1 << 29		; check if LM bit is set in EDX;
+	jz .no_long_mode		; if not, the CPU does not support long mode.
+	ret
+
+.no_long_mode:
+	mov al, "2"
 	jmp error
 
 ; prints the error code to VGA text buffer and halts
