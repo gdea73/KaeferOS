@@ -10,4 +10,4 @@ Cargo.lock
 **/*.rs.bk
 
 *.o
-kernel.bin
+*.bin
