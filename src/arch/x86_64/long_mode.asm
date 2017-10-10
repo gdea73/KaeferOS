@@ -18,8 +18,8 @@ long_mode_start:
 	extern rust_main
 	call rust_main
 
-	; print 'OK! ' to screen
-	mov rax, 0x8F20AF21AF4BAF4F
+	; print 'OK!' to screen
+	mov rax, 0x8F20A721A74BA74F
 	mov qword [vgabuf], rax
 	mov rax, 0x8F208F208F208F20
 	mov qword [vgabuf + 0x08], rax

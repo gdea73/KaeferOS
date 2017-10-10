@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["George Albertson <gdea73@gmail.com>"]
 
 [lib]
-create-type = ["staticlib"]
+crate-type = ["staticlib"]
 
 [dependencies]
 rlibc = "1.0"
