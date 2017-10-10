@@ -12,10 +12,65 @@ start:
 	call check_cpuid
 	call check_long_mode
 
+	call init_page_tables
+	call enable_paging
+
 	; print 'OK! ' to screen
 	mov dword [vgabuf(0x00)], 0x2F4B2F4F
 	mov dword [vgabuf(0x04)], 0x0F202F21
 	hlt
+
+init_page_tables:
+	; map the first entry in P4 to the P3 table
+	mov eax, p3_table
+	or eax, 0b11	; set present & writable flags
+	mov [p4_table], eax
+
+	; map the first P3 entry to the P2 table
+	mov eax, p2_table
+	or eax, 0b11
+	mov [p3_table], eax
+
+	; now, map each entry in P2 to a 'huge' 2MB page
+	mov ecx, 0		; iterator
+
+.map_p2_table:
+	; map the P2 entry with offset specified in ECX to a 2MB page
+	; with address 2MB*ECX
+	mov eax, 0x200000	; 2 MB
+	mul ecx				; start address of this page
+	or eax, 0b10000011	; present, writable, and huge flags
+	mov [p2_table + ecx * 8], eax
+	inc ecx
+	cmp ecx, 512		; if ECX == 512, the whole P2 table is mapped
+	jne .map_p2_table
+
+	ret
+
+enable_paging:
+	; load address of P4 to CR3; the CPU will read this address to locate
+	; the page table once in long mode.
+	mov eax, p4_table
+	mov cr3, eax
+
+	; enable Physical Address Extension flag (bit 5) in CR4
+	mov eax, cr4
+	or eax, 1 << 5
+	mov cr4, eax
+
+	; set the long mode bit in the Model Specific Register
+	mov ecx, 0xC0000080
+	rdmsr
+	or eax, 1 << 8
+	wrmsr
+
+	; enable paging in the CR0 register
+	mov eax, cr0
+	or eax, 1 << 31
+	mov cr0, eax
+
+	ret
+
 
 check_multiboot:
 	cmp eax, multi_magic
@@ -88,6 +143,15 @@ error:
 	hlt
 
 section .bss
+; paging plan: 512 2-MB pages make up the first 1 GB of the kernel
+; ensure page aligned page tables
+align 4096
+p4_table:
+	resb 4096
+p3_table:
+	resb 4096
+p2_table:
+	resb 4096
 stack_bottom:
 	resb 64		; reserve 64 bytes (uninitialized) for the stack
 stack_top:
