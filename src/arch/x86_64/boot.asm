@@ -2,6 +2,7 @@
 %define multi_magic 0x36D76289
 
 global start
+extern long_mode_start
 
 section .text
 bits 32
@@ -15,9 +16,13 @@ start:
 	call init_page_tables
 	call enable_paging
 
+	; load the 64-bit GDT
+	lgdt [gdt64.ptr]
+	jmp gdt64.code:long_mode_start
+
 	; print 'OK! ' to screen
-	mov dword [vgabuf(0x00)], 0x2F4B2F4F
-	mov dword [vgabuf(0x04)], 0x0F202F21
+	; mov dword [vgabuf(0x00)], 0x2F4B2F4F
+	; mov dword [vgabuf(0x04)], 0x0F202F21
 	hlt
 
 init_page_tables:
@@ -155,3 +160,12 @@ p2_table:
 stack_bottom:
 	resb 64		; reserve 64 bytes (uninitialized) for the stack
 stack_top:
+
+section .rodata
+gdt64:
+	dq 0	; initial 0-entry
+.code: equ $ - gdt64
+	dq (1 << 43) | (1 << 44) | (1 << 47) | (1 << 53)	; 64 bit code segment
+.ptr:
+	dw $ - gdt64 - 1
+	dq gdt64
