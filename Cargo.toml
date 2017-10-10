@@ -5,3 +5,6 @@ authors = ["George Albertson <gdea73@gmail.com>"]
 
 [lib]
 create-type = ["staticlib"]
+
+[dependencies]
+rlibc = "1.0"

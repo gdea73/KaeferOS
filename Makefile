@@ -1,4 +1,6 @@
 arch ?= x86_64
+target ?= $(arch)-kaefer_os
+rust_os := target/$(target)/debug/libkaefer_os.rlib
 kernel := build/kernel-$(arch).bin
 iso := build/os-$(arch).iso
 
@@ -8,7 +10,7 @@ assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
 assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, \
 	build/arch/$(arch)/%.o, $(assembly_source_files))
 
-.PHONY: all clean run iso
+.PHONY: all clean run iso kernel
 
 all: $(kernel)
 
@@ -27,8 +29,12 @@ $(iso): $(kernel) $(grub_cfg)
 	grub-mkrescue -o $(iso) build/isofiles &>/dev/null
 	rm -r build/isofiles
 
-$(kernel): $(assembly_object_files) $(linker_script)
-	@ld -n -T $(linker_script) -o $(kernel) $(assembly_object_files)
+$(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
+	@ld -n -T $(linker_script) -o $(kernel) \
+	$(assembly_object_files) $(rust_os)
+
+kernel:
+	@xargo build --target $(target)
 
 # assemble
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
