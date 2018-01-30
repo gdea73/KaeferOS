@@ -1,5 +1,6 @@
 use core::ptr::Unique;
 use volatile::Volatile;
+use core::fmt;
 
 #[allow(dead_code)]
 #[repr(u8)]
@@ -87,6 +88,15 @@ impl Writer {
 	fn new_line(&mut self) {
 
 	}
+}
+
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for byte in s.bytes() {
+            self.write_byte(byte)
+        }
+        Ok(())
+    }
 }
 
 pub fn printToScreenTest() {
